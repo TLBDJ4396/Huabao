@@ -32,13 +32,13 @@ fun MainScreen(a: MainActivity) {
     Scaffold(bottomBar = {
         NavigationBar {
             NavigationBarItem(selected = tab == 0, onClick = { tab = 0 },
-                icon = { Icon(Icons.Default.Home, contentDescription = "\u4e3b\u9875") },
+                icon = { Icon(Icons.Default.Home, contentDescription = "home") },
                 label = { Text("\u4e3b\u9875") })
             NavigationBarItem(selected = tab == 1, onClick = { tab = 1; rf++ },
-                icon = { Icon(Icons.Default.List, contentDescription = "\u56fe\u5e93") },
+                icon = { Icon(Icons.Default.List, contentDescription = "list") },
                 label = { Text("\u56fe\u5e93") })
             NavigationBarItem(selected = tab == 2, onClick = { tab = 2 },
-                icon = { Icon(Icons.Default.Settings, contentDescription = "\u8bbe\u7f6e") },
+                icon = { Icon(Icons.Default.Settings, contentDescription = "settings") },
                 label = { Text("\u8bbe\u7f6e") })
         }
     }) { p ->
