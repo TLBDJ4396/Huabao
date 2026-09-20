@@ -1,4 +1,5 @@
 package com.self.wallpaperrotation
+
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
@@ -6,8 +7,8 @@ import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
 import androidx.activity.ComponentActivity
-import androidx.activity.PickVisualMediaRequest
 import androidx.activity.compose.setContent
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
@@ -18,6 +19,7 @@ import com.self.wallpaperrotation.notification.NotificationHelper
 import com.self.wallpaperrotation.rotation.RotationReceiver
 import com.self.wallpaperrotation.rotation.RotationScheduler
 import com.self.wallpaperrotation.ui.MainScreen
+
 class MainActivity : ComponentActivity() {
     private var pc: ((List<Uri>) -> Unit)? = null
     private var ec: ((Uri) -> Unit)? = null

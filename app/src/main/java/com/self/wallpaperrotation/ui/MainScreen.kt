@@ -20,6 +20,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.self.wallpaperrotation.MainActivity
 import com.self.wallpaperrotation.data.WallpaperItem
+
 @Composable
 fun MainScreen(a: MainActivity) {
     var tab by remember { mutableIntStateOf(0) }
