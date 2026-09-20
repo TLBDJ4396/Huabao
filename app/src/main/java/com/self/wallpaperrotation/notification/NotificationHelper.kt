@@ -1,5 +1,4 @@
-﻿package com.self.wallpaperrotation.notification
-
+package com.self.wallpaperrotation.notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -10,64 +9,35 @@ import androidx.core.app.NotificationCompat
 import com.self.wallpaperrotation.MainActivity
 import com.self.wallpaperrotation.data.AppSettings
 import com.self.wallpaperrotation.rotation.RotationReceiver
-
 object NotificationHelper {
-    private const val CHANNEL_ID = "wallpaper_channel"
-    private const val NOTIFICATION_ID = 1001
-
-    fun show(context: Context) {
-        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    private const val CH = "wallpaper_channel"
+    private const val NID = 1001
+    fun show(c: Context) {
+        val nm = c.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val ch = NotificationChannel(
-                CHANNEL_ID, "澹佺焊杞崲", NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = "澹佺焊杞崲鐘舵€佷笌蹇嵎鎿嶄綔"
+            val ch = NotificationChannel(CH, "\u58c1\u7eb8\u8f6e\u6362", NotificationManager.IMPORTANCE_LOW).apply {
+                description = "\u58c1\u7eb8\u8f6e\u6362\u72b6\u6001\u4e0e\u5feb\u6377\u64cd\u4f5c"
                 setShowBadge(false)
             }
             nm.createNotificationChannel(ch)
         }
-
-        val openIntent = Intent(context, MainActivity::class.java)
-        val openPi = PendingIntent.getActivity(
-            context, 0, openIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val nextIntent = Intent(context, RotationReceiver::class.java).apply {
-            action = RotationReceiver.ACTION_NEXT
-        }
-        val nextPi = PendingIntent.getBroadcast(
-            context, 1, nextIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val settings = AppSettings(context)
-        val text = if (settings.rotationEnabled) {
-            "姣?${settings.intervalMinutes} 鍒嗛挓妫€鏌ヤ竴娆?
-        } else {
-            "宸叉殏鍋?
-        }
-
-        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+        val op = PendingIntent.getActivity(c, 0, Intent(c, MainActivity::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val np = PendingIntent.getBroadcast(c, 1,
+            Intent(c, RotationReceiver::class.java).apply { action = RotationReceiver.ACTION_NEXT },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val s = AppSettings(c)
+        val txt = if (s.rotationEnabled) "\u6bcf ${s.intervalMinutes} \u5206\u949f\u68c0\u67e5\u4e00\u6b21" else "\u5df2\u6682\u505c"
+        val n = NotificationCompat.Builder(c, CH)
             .setSmallIcon(android.R.drawable.ic_menu_gallery)
-            .setContentTitle("鐢绘姤")
-            .setContentText(text)
-            .setContentIntent(openPi)
-            .addAction(0, "涓嬩竴寮?, nextPi)
-            .setOngoing(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .build()
-
-        try {
-            nm.notify(NOTIFICATION_ID, notification)
-        } catch (_: Exception) {
-        }
+            .setContentTitle("\u753b\u62a5").setContentText(txt).setContentIntent(op)
+            .addAction(0, "\u4e0b\u4e00\u5f20", np).setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW).build()
+        try { nm.notify(NID, n) } catch (_: Exception) {}
     }
-
-    fun update(context: Context) = show(context)
-
-    fun cancel(context: Context) {
-        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        nm.cancel(NOTIFICATION_ID)
+    fun update(c: Context) = show(c)
+    fun cancel(c: Context) {
+        val nm = c.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.cancel(NID)
     }
 }

@@ -1,46 +1,49 @@
-﻿package com.self.wallpaperrotation.data
-
+package com.self.wallpaperrotation.data
 import android.content.Context
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.io.File
-
 object WallpaperRepository {
-    private const val FILE_NAME = "wallpapers.json"
+    private const val FN = "wallpapers.json"
     private val gson = Gson()
-
-    private fun file(context: Context) = File(context.filesDir, FILE_NAME)
-
-    fun load(context: Context): MutableList<WallpaperItem> {
-        val f = file(context)
-        if (!f.exists()) return mutableListOf()
+    private fun f(c: Context) = File(c.filesDir, FN)
+    fun load(c: Context): MutableList<WallpaperItem> {
+        val file = f(c)
+        if (!file.exists()) return mutableListOf()
         return try {
-            val type = object : TypeToken<MutableList<WallpaperItem>>() {}.type
-            gson.fromJson<MutableList<WallpaperItem>>(f.readText(), type) ?: mutableListOf()
-        } catch (e: Exception) {
-            mutableListOf()
-        }
+            val t = object : TypeToken<MutableList<WallpaperItem>>() {}.type
+            gson.fromJson<MutableList<WallpaperItem>>(file.readText(), t) ?: mutableListOf()
+        } catch (e: Exception) { mutableListOf() }
     }
-
-    fun save(context: Context, list: List<WallpaperItem>) {
-        try {
-            file(context).writeText(gson.toJson(list))
-        } catch (_: Exception) {
-        }
+    fun save(c: Context, l: List<WallpaperItem>) { try { f(c).writeText(gson.toJson(l)) } catch (_: Exception) {} }
+    fun add(c: Context, i: WallpaperItem) { val l = load(c); l.add(i); save(c, l) }
+    fun remove(c: Context, id: String) { val l = load(c).filterNot { it.id == id }.toMutableList(); save(c, l) }
+    fun update(c: Context, i: WallpaperItem) {
+        val l = load(c); val idx = l.indexOfFirst { it.id == i.id }
+        if (idx >= 0) { l[idx] = i; save(c, l) }
     }
-
-    fun add(context: Context, item: WallpaperItem) {
-        val list = load(context)
-        list.add(item)
-        save(context, list)
+    fun clear(c: Context) { save(c, emptyList()) }
+    fun setCursorIndex(c: Context, id: String) {
+        val l = load(c).filter { it.enabled }
+        val idx = l.indexOfFirst { it.id == id }
+        if (idx >= 0) { AppSettings(c).cursorIndex = idx }
     }
-
-    fun remove(context: Context, id: String) {
-        val list = load(context).filterNot { it.id == id }.toMutableList()
-        save(context, list)
+    fun exportBackup(c: Context): String {
+        val d = BackupData(load(c), TagRepository.load(c), System.currentTimeMillis(), 2)
+        return gson.toJson(d)
     }
-
-    fun clear(context: Context) {
-        save(context, emptyList())
+    fun importBackup(c: Context, json: String): Boolean {
+        return try {
+            val d: BackupData = gson.fromJson(json, BackupData::class.java)
+            if (d.wallpapers != null) save(c, d.wallpapers)
+            if (d.tags != null) TagRepository.save(c, d.tags)
+            true
+        } catch (e: Exception) { false }
     }
+    data class BackupData(
+        val wallpapers: List<WallpaperItem>?,
+        val tags: List<Tag>?,
+        val exportTime: Long,
+        val version: Int
+    )
 }

@@ -1,5 +1,4 @@
-﻿package com.self.wallpaperrotation.ui
-
+package com.self.wallpaperrotation.ui
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -15,45 +14,38 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.self.wallpaperrotation.MainActivity
-
+import com.self.wallpaperrotation.data.WallpaperItem
 @Composable
-fun MainScreen(activity: MainActivity) {
+fun MainScreen(a: MainActivity) {
     var tab by remember { mutableIntStateOf(0) }
-    var refresh by remember { mutableIntStateOf(0) }
-
-    Scaffold(
-        bottomBar = {
-            NavigationBar {
-                NavigationBarItem(
-                    selected = tab == 0,
-                    onClick = { tab = 0 },
-                    icon = { Icon(Icons.Default.Home, contentDescription = "涓婚〉") },
-                    label = { Text("涓婚〉") }
-                )
-                NavigationBarItem(
-                    selected = tab == 1,
-                    onClick = { tab = 1; refresh++ },
-                    icon = { Icon(Icons.Default.List, contentDescription = "鍥惧簱") },
-                    label = { Text("鍥惧簱") }
-                )
-                NavigationBarItem(
-                    selected = tab == 2,
-                    onClick = { tab = 2 },
-                    icon = { Icon(Icons.Default.Settings, contentDescription = "璁剧疆") },
-                    label = { Text("璁剧疆") }
-                )
-            }
+    var rf by remember { mutableIntStateOf(0) }
+    var pv by remember { mutableStateOf<WallpaperItem?>(null) }
+    var st by remember { mutableStateOf(false) }
+    pv?.let { PreviewScreen(a, it, onBack = { pv = null; rf++ }, onChanged = { rf++ }); return }
+    if (st) { TagsScreen(a, onBack = { st = false; rf++ }); return }
+    Scaffold(bottomBar = {
+        NavigationBar {
+            NavigationBarItem(selected = tab == 0, onClick = { tab = 0 },
+                icon = { Icon(Icons.Default.Home, contentDescription = "\u4e3b\u9875") },
+                label = { Text("\u4e3b\u9875") })
+            NavigationBarItem(selected = tab == 1, onClick = { tab = 1; rf++ },
+                icon = { Icon(Icons.Default.List, contentDescription = "\u56fe\u5e93") },
+                label = { Text("\u56fe\u5e93") })
+            NavigationBarItem(selected = tab == 2, onClick = { tab = 2 },
+                icon = { Icon(Icons.Default.Settings, contentDescription = "\u8bbe\u7f6e") },
+                label = { Text("\u8bbe\u7f6e") })
         }
-    ) { padding ->
-        Box(Modifier.padding(padding).fillMaxSize()) {
+    }) { p ->
+        Box(Modifier.padding(p).fillMaxSize()) {
             when (tab) {
-                0 -> HomeScreen(activity, refresh) { tab = 1; refresh++ }
-                1 -> GalleryScreen(activity, refresh) { refresh++ }
-                2 -> SettingsScreen(activity) { refresh++ }
+                0 -> HomeScreen(a, rf) { tab = 1; rf++ }
+                1 -> GalleryScreen(a, rf, onOpenPreview = { pv = it }, onChanged = { rf++ })
+                2 -> SettingsScreen(a, onChanged = { rf++ }, onOpenTags = { st = true })
             }
         }
     }

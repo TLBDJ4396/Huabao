@@ -1,4 +1,7 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">鐢绘姤</string>
+    <string name="app_name">画报</string>
+    <string name="next_short">下一张</string>
+    <string name="shortcut_next_short">下一张</string>
+    <string name="shortcut_next_long">切换到下一张壁纸</string>
 </resources>

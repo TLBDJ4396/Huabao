@@ -1,5 +1,4 @@
-﻿package com.self.wallpaperrotation.wallpaper
-
+package com.self.wallpaperrotation.wallpaper
 import android.app.WallpaperManager
 import android.content.Context
 import android.graphics.Bitmap
@@ -10,119 +9,75 @@ import android.os.Build
 import android.util.DisplayMetrics
 import android.view.WindowManager
 import java.io.File
-
 object WallpaperSetter {
-
-    fun apply(
-        context: Context,
-        source: String,
-        isCopy: Boolean,
-        setLock: Boolean,
-        setHome: Boolean
-    ): Boolean {
-        val bitmap = try {
-            loadBitmap(context, source, isCopy) ?: return false
-        } catch (e: Exception) {
-            return false
-        }
-        val cropped = try {
-            centerCrop(context, bitmap)
-        } catch (e: Exception) {
-            return false
-        }
-
-        val wm = WallpaperManager.getInstance(context)
+    fun apply(ctx: Context, source: String, isCopy: Boolean, setLock: Boolean, setHome: Boolean, cropOffset: Float = 0.5f): Boolean {
+        val bmp = try { load(ctx, source, isCopy) ?: return false } catch (e: Exception) { return false }
+        val cr = try { crop(ctx, bmp, cropOffset) } catch (e: Exception) { return false }
+        val wm = WallpaperManager.getInstance(ctx)
         var flag = 0
         if (setLock) flag = flag or WallpaperManager.FLAG_LOCK
         if (setHome) flag = flag or WallpaperManager.FLAG_SYSTEM
         if (flag == 0) return false
-
-        return try {
-            wm.setBitmap(cropped, null, true, flag)
-            true
-        } catch (e: Exception) {
-            false
-        }
+        return try { wm.setBitmap(cr, null, true, flag); true } catch (e: Exception) { false }
     }
-
-    private fun loadBitmap(context: Context, source: String, isCopy: Boolean): Bitmap? {
-        val (reqW, reqH) = screenSize(context)
+    private fun load(ctx: Context, source: String, isCopy: Boolean): Bitmap? {
+        val (w, h) = screen(ctx)
         return if (isCopy) {
-            val f = File(source)
-            if (!f.exists()) return null
-            decodeSampled(f.path, reqW, reqH)
-        } else {
+            val f = File(source); if (!f.exists()) return null
+            decode(f.path, w, h)
+        } else try {
             val uri = Uri.parse(source)
-            try {
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                    BitmapFactory.decodeStream(input, null, opts)
-                    context.contentResolver.openInputStream(uri)?.use { input2 ->
-                        val opts2 = BitmapFactory.Options().apply {
-                            inJustDecodeBounds = false
-                            inSampleSize = calcInSampleSize(opts.outWidth, opts.outHeight, reqW, reqH)
-                        }
-                        BitmapFactory.decodeStream(input2, null, opts2)
+            ctx.contentResolver.openInputStream(uri)?.use { i ->
+                val o = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeStream(i, null, o)
+                ctx.contentResolver.openInputStream(uri)?.use { i2 ->
+                    val o2 = BitmapFactory.Options().apply {
+                        inJustDecodeBounds = false
+                        inSampleSize = calc(o.outWidth, o.outHeight, w, h)
                     }
+                    BitmapFactory.decodeStream(i2, null, o2)
                 }
-            } catch (e: Exception) {
-                null
             }
-        }
+        } catch (e: Exception) { null }
     }
-
-    private fun decodeSampled(path: String, reqW: Int, reqH: Int): Bitmap? {
-        val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        BitmapFactory.decodeFile(path, opts)
-        if (opts.outWidth <= 0 || opts.outHeight <= 0) return null
-        val opts2 = BitmapFactory.Options().apply {
+    private fun decode(p: String, w: Int, h: Int): Bitmap? {
+        val o = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeFile(p, o)
+        if (o.outWidth <= 0 || o.outHeight <= 0) return null
+        val o2 = BitmapFactory.Options().apply {
             inJustDecodeBounds = false
-            inSampleSize = calcInSampleSize(opts.outWidth, opts.outHeight, reqW, reqH)
+            inSampleSize = calc(o.outWidth, o.outHeight, w, h)
         }
-        return BitmapFactory.decodeFile(path, opts2)
+        return BitmapFactory.decodeFile(p, o2)
     }
-
-    private fun calcInSampleSize(srcW: Int, srcH: Int, reqW: Int, reqH: Int): Int {
-        var sample = 1
-        if (srcW <= 0 || srcH <= 0) return 1
-        while (srcW / (sample * 2) >= reqW && srcH / (sample * 2) >= reqH) {
-            sample *= 2
-        }
-        return sample
+    private fun calc(w: Int, h: Int, rw: Int, rh: Int): Int {
+        var s = 1; if (w <= 0 || h <= 0) return 1
+        while (w / (s * 2) >= rw && h / (s * 2) >= rh) s *= 2
+        return s
     }
-
-    private fun screenSize(context: Context): Pair<Int, Int> {
-        val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+    private fun screen(c: Context): Pair<Int, Int> {
+        val wm = c.getSystemService(Context.WINDOW_SERVICE) as WindowManager
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val b = wm.currentWindowMetrics.bounds
-            b.width() to b.height()
+            val b = wm.currentWindowMetrics.bounds; b.width() to b.height()
         } else {
             val dm = DisplayMetrics()
-            @Suppress("DEPRECATION")
-            wm.defaultDisplay.getRealMetrics(dm)
+            @Suppress("DEPRECATION") wm.defaultDisplay.getRealMetrics(dm)
             dm.widthPixels to dm.heightPixels
         }
     }
-
-    private fun centerCrop(context: Context, src: Bitmap): Bitmap {
-        val (targetW, targetH) = screenSize(context)
-        val srcW = src.width
-        val srcH = src.height
-        if (srcW <= 0 || srcH <= 0) return src
-
-        val scale = maxOf(targetW.toFloat() / srcW, targetH.toFloat() / srcH)
-        val scaledW = (srcW * scale).toInt().coerceAtLeast(1)
-        val scaledH = (srcH * scale).toInt().coerceAtLeast(1)
-
-        val matrix = Matrix()
-        matrix.postScale(scale, scale)
-        val scaled = Bitmap.createBitmap(src, 0, 0, srcW, srcH, matrix, true)
-
-        val x = ((scaledW - targetW) / 2).coerceAtLeast(0)
-        val y = ((scaledH - targetH) / 2).coerceAtLeast(0)
-        val w = targetW.coerceAtMost(scaled.width - x)
-        val h = targetH.coerceAtMost(scaled.height - y)
-
-        return Bitmap.createBitmap(scaled, x, y, w, h)
+    private fun crop(ctx: Context, src: Bitmap, off: Float): Bitmap {
+        val (tw, th) = screen(ctx)
+        val sw = src.width; val sh = src.height
+        if (sw <= 0 || sh <= 0) return src
+        val sc = maxOf(tw.toFloat() / sw, th.toFloat() / sh)
+        val scw = (sw * sc).toInt().coerceAtLeast(1)
+        val sch = (sh * sc).toInt().coerceAtLeast(1)
+        val m = Matrix(); m.postScale(sc, sc)
+        val s = Bitmap.createBitmap(src, 0, 0, sw, sh, m, true)
+        val ew = (scw - tw).coerceAtLeast(0); val eh = (sch - th).coerceAtLeast(0)
+        val x = (ew / 2).coerceIn(0, ew)
+        val y = (eh * off.coerceIn(0f, 1f)).toInt().coerceIn(0, eh)
+        val w = tw.coerceAtMost(s.width - x); val h = th.coerceAtMost(s.height - y)
+        return Bitmap.createBitmap(s, x, y, w, h)
     }
 }

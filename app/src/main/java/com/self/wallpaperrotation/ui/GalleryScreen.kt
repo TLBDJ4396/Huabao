@@ -1,5 +1,4 @@
-﻿package com.self.wallpaperrotation.ui
-
+package com.self.wallpaperrotation.ui
 import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -7,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -15,14 +13,11 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,89 +38,38 @@ import com.self.wallpaperrotation.wallpaper.ImageImporter
 import java.io.File
 
 @Composable
-fun GalleryScreen(activity: MainActivity, refreshKey: Int, onChanged: () -> Unit) {
-    var list by remember(refreshKey) { mutableStateOf(WallpaperRepository.load(activity)) }
-    var pendingDelete by remember { mutableStateOf<WallpaperItem?>(null) }
-
-    Scaffold(
-        floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = {
-                    activity.pickImages { uris ->
-                        val settings = AppSettings(activity)
-                        var added = 0
-                        uris.forEach { uri: Uri ->
-                            val ok = if (settings.importAsCopy) {
-                                ImageImporter.importCopy(activity, uri)
-                            } else {
-                                ImageImporter.addReference(activity, uri)
-                            }
-                            if (ok) added++
-                        }
-                        list = WallpaperRepository.load(activity)
-                        onChanged()
-                    }
-                },
-                icon = { Icon(Icons.Default.Add, contentDescription = null) },
-                text = { Text("娣诲姞") }
-            )
-        }
-    ) { padding ->
+fun GalleryScreen(a: MainActivity, rk: Int, onOpenPreview: (WallpaperItem) -> Unit, onChanged: () -> Unit) {
+    var list by remember(rk) { mutableStateOf(WallpaperRepository.load(a)) }
+    Scaffold(floatingActionButton = {
+        ExtendedFloatingActionButton(onClick = {
+            a.pickImages { uris ->
+                val s = AppSettings(a)
+                uris.forEach { u: Uri ->
+                    if (s.importAsCopy) ImageImporter.importCopy(a, u) else ImageImporter.addReference(a, u)
+                }
+                list = WallpaperRepository.load(a)
+                onChanged()
+            }
+        }, icon = { Icon(Icons.Default.Add, contentDescription = null) }, text = { Text("\u6dfb\u52a0") })
+    }) { p ->
         if (list.isEmpty()) {
-            Box(
-                Modifier.padding(padding).fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("杩樻病鏈夊绾革紝鐐瑰彸涓嬭娣诲姞", style = MaterialTheme.typography.bodyLarge)
+            Box(Modifier.padding(p).fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("\u8fd8\u6ca1\u6709\u58c1\u7eb8\uff0c\u70b9\u53f3\u4e0b\u89d2\u6dfb\u52a0", style = MaterialTheme.typography.bodyLarge)
             }
         } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(3),
-                modifier = Modifier.padding(padding).fillMaxSize(),
+            LazyVerticalGrid(columns = GridCells.Fixed(3),
+                modifier = Modifier.padding(p).fillMaxSize(),
                 contentPadding = PaddingValues(8.dp),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                items(list, key = { it.id }) { item ->
-                    val model: Any = if (item.type == WallpaperType.COPY) {
-                        File(item.source)
-                    } else {
-                        Uri.parse(item.source)
-                    }
-                    Box(
-                        Modifier
-                            .aspectRatio(0.6f)
-                            .clip(RoundedCornerShape(8.dp))
-                            .clickable { pendingDelete = item }
-                    ) {
-                        AsyncImage(
-                            model = model,
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
+                verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                items(list, key = { it.id }) { it ->
+                    val m: Any = if (it.type == WallpaperType.COPY) File(it.source) else Uri.parse(it.source)
+                    Box(Modifier.aspectRatio(0.6f).clip(RoundedCornerShape(8.dp)).clickable { onOpenPreview(it) }) {
+                        AsyncImage(model = m, contentDescription = null,
+                            contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
                     }
                 }
             }
         }
-    }
-
-    pendingDelete?.let { item ->
-        AlertDialog(
-            onDismissRequest = { pendingDelete = null },
-            title = { Text("鍒犻櫎杩欏紶澹佺焊锛?) },
-            text = { Text(if (item.type == WallpaperType.COPY) "鍓湰鏂囦欢涔熶細涓€骞跺垹闄? else "鍙Щ闄よ褰曪紝鍘熷浘涓嶅彈褰卞搷") },
-            confirmButton = {
-                TextButton(onClick = {
-                    WallpaperRepository.remove(activity, item.id)
-                    list = WallpaperRepository.load(activity)
-                    pendingDelete = null
-                    onChanged()
-                }) { Text("鍒犻櫎") }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text("鍙栨秷") }
-            }
-        )
     }
 }
